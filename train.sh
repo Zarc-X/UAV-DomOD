@@ -1,41 +1,48 @@
 #!/bin/bash
+set -e
 export OMP_NUM_THREADS=1
 export PYTHONPATH=.
 
 data_root=data
 nnode=1
+python_bin=$(which python)
+
+launch_train() {
+    "${python_bin}" -m torch.distributed.run --nproc-per-node="${nnode}" tools/train.py "$@"
+}
 
 # 数据路径整理(为了避免修改代码)
+mkdir -p data/track1-A/annotations data/tmp_data
 pushd data/track1-A
-ln -s ../contest_data/train train
-ln -s ../contest_data/val val
-ln -s ../contest_data/test test
+ln -sfn ../contest_data/train train
+ln -sfn ../contest_data/val val
+ln -sfn ../contest_data/test test
 popd
 
 echo "========== section 1. data & pretrained ckpts =============="
 # 下载权重 swin/co-dino
 mkdir -p ckpt
 pushd ckpt
-wget https://download.openmmlab.com/mmdetection/v3.0/codetr/co_dino_5scale_swin_large_16e_o365tococo-614254c9.pth
-wget https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window12_384_22k.pth
+wget -nc https://download.openmmlab.com/mmdetection/v3.0/codetr/co_dino_5scale_swin_large_16e_o365tococo-614254c9.pth
+wget -nc https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window12_384_22k.pth
 popd
 
 # patch ckpt
 python scripts/patch_ckpt.py --ckpt ckpt/co_dino_5scale_swin_large_16e_o365tococo-614254c9.pth
 
 # split nfold
-python scripts/split_nfold.py ${data}/track1-A/annotations/train_0527.json --prefix train_0527
+python scripts/split_nfold.py ${data_root}/track1-A/annotations/train_0527.json --prefix train_0527
 
 
 echo "========== section 3. train models using contest data =============="
 # train model [1]: codetr [train_0518 full data] [concat]
 cfg=projects/gaiic2014/configs/codetr_full_0518data.py
 opt="train_dataloader={'dataset': {'ann_file': 'annotations/train_0518.json'}}"
-torchrun --nproc-per-node=${nnode} tools/train.py ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/codetr_all_in_one_0518/ --cfg-options "${opt}"
+launch_train ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/codetr_all_in_one_0518/ --cfg-options "${opt}"
 
 # train model [2]: codetr [train_0527 full data] [concat]
 cfg=projects/gaiic2014/configs/codetr_all_in_one.py
-torchrun --nproc-per-node=${nnode} tools/train.py ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/codetr_all_in_one_0527/
+launch_train ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/codetr_all_in_one_0527/
 
 # train model [3/4/5]: codetr [train_0527 0/1/2 fold] [concat]
 for i in {0..2}
@@ -43,16 +50,16 @@ do
     cfg=projects/gaiic2014/configs/codetr_all_in_one.py
     opt="train_dataloader={'dataset': {'ann_file': 'annotations/train_0527_${i}_train.json'}}"
     opt2="train_cfg={'max_epochs': 12}"
-    torchrun --nproc-per-node=${nnode} tools/train.py ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/codetr_all_in_one_fold_${i}/ --cfg-options "${opt}" "${opt2}"
+    launch_train ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/codetr_all_in_one_fold_${i}/ --cfg-options "${opt}" "${opt2}"
 done
 
 # train model [6]: codetr [train_0527 full data] [strong aug] [concat]
 cfg=projects/gaiic2014/configs/codetr_all_in_one_strong_aug.py
-torchrun --nproc-per-node=${nnode} tools/train.py ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/codetr_all_in_one_strong_aug/
+launch_train ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/codetr_all_in_one_strong_aug/
 
 # train model [7]: codetr [train_0527 full data] [mean]
 cfg=projects/gaiic2014/configs/mean_fuse.py
-torchrun --nproc-per-node=${nnode} tools/train.py ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/mean_fuse/
+launch_train ${cfg} --launcher pytorch --work-dir data/tmp_data/work_dirs/mean_fuse/
 
 echo "========== section 4. train models with EXTERNAL DATA =============="
 echo "由于外部数据不能完全自动化，不好写到脚本里。这部分如果需要严格复现，可以手动取消注释。外部数据的模型A榜约有5个千分点的提高。对最终名次无影响。"
@@ -73,7 +80,7 @@ echo "由于外部数据不能完全自动化，不好写到脚本里。这部�
 
 # # format external data
 # python scripts/external_data.py     # [WARN] 注意这个脚本里的路径都写死了，所以数据的目录树要与readme里保持一致
-# python scripts/split_nfold.py ${data}/aistudio/annotations.json       # 用aistudio的其中一折作为验证集
+# python scripts/split_nfold.py ${data_root}/aistudio/annotations.json       # 用aistudio的其中一折作为验证集
 
 # # pre-train: codetr [EXTERNAL DATA] [mean]
 # cfg=projects/gaiic2014/configs/pretrain.py

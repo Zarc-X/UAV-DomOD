@@ -1,0 +1,353 @@
+
+
+===== PAGE 1 =====
+The Solution for the GAIIC2024 RGB-TIR object detection Challenge
+Xiangyu Wu1, Jinling Xu2, Longfei Huang1, Yang Yang1*
+1Nanjing University of Science and Technology 2APe counseling
+yyang.@njust.edu.cn
+Abstract
+This report introduces a solution to The task of RGB-TIR
+object detection from the perspective of unmanned aerial
+vehicles. Unlike traditional object detection methods, RGB-
+TIR object detection aims to utilize both RGB and TIR im-
+ages for complementary information during detection. The
+challenges of RGB-TIR object detection from the perspec-
+tive of unmanned aerial vehicles include highly complex im-
+age backgrounds, frequent changes in lighting, and uncali-
+brated RGB-TIR image pairs. To address these challenges
+at the model level, we utilized a lightweight YOLOv9 model
+with extended multi-level auxiliary branches that enhance
+the model’s robustness, making it more suitable for practi-
+cal applications in unmanned aerial vehicle scenarios. F or
+image fusion in RGB-TIR detection, we incorporated a fu-
+sion module into the backbone network to fuse images at the
+feature level, implicitly addressing calibration issues. Our
+proposed method achieved an mAP score of 0.516 and 0.543
+on A and B benchmarks respectively while maintaining the
+highest inference speed among all models.
+1. Introduction
+Based on drones, vehicle detection plays a crucial role in
+intelligent urban traffic management and disaster relief ef-
+forts. Drones equipped with cameras can capture images
+with a wide field of view, which is advantageous for captur-
+ing ground targets. However, due to highly complex back-
+grounds and frequent changes in lighting, airborne-based
+object detection remains an active and challenging task in
+the field of computer vision [19, 20].
+With the development and application of multimodal
+technology[10, 12, 16–18], considering the robustness of
+infrared cameras in all-day imaging, a challenge arises
+in integrating infrared images to complement visible light
+modalities, forming RGB-TIR image pairs. However,
+RGB-IR object detection faces challenges in modal calibra-
+tion errors[19], stemming from RGB-IR image pairs cap-
+*Corresponding author
+Scene Diversity
+RGB-TIR Image Misalignment
+Figure 1. The data comprises various scenes and environments.
+There are significant differences in the quality and clarity between
+RGB and TIR images, with notable noise issues. Variations in
+imaging time and the operational states of different vehicles lead
+to slight discrepancies in the positions of corresponding vehicles
+in paired images.
+tured by sensors with different fields of view and imag-
+ing times, resulting in potential asynchrony in the positions
+of moving objects. Additionally, the RGB-TIR target de-
+tection dataset from the drone’s perspective covers various
+scenes including urban roads, rural areas, residential areas,
+parking lots, and spans from day to night, as shown in Fig-
+ure 1.
+To tackle these challenges, we opted for the lightweight
+YOLOv9 model[7], which better suits practical application
+scenarios. Additionally, we introduced external datasets
+and expanded the model with multi-level auxiliary branches
+to enhance its robustness. Furthermore, by incorporating
+a model fusion module, we conducted image fusion at the
+feature level to implicitly address image misregistration is-
+arXiv:2407.03872v1  [cs.CV]  4 Jul 2024
+
+===== PAGE 2 =====
+sues and improve model performance. We also integrated
+powerful data augmentation techniques to enhance model
+generalization and cross-domain robustness further.
+2. Related Work
+2.1. Object Detection
+With the advancement of deep learning technologies, ob-
+ject detection techniques have become increasingly ma-
+ture. Currently, the mainstream object detectors include the
+YOLO series[3, 7] and the DETR series[1, 23]. [23] in-
+troduced the Co-DETR model, which achieved remarkable
+results on the COCO dataset[2]. However, due to the ex-
+treme difficulty of applying DETR series detectors to new
+domains without corresponding domain-pretrained models,
+the most widely used object detector in practical applica-
+tions remains the YOLO series. The YOLOv9 model, by
+introducing PGI and GELAN structures, enhances detection
+performance while ensuring real-time capabilities.
+2.2. Multi-modal Image Fusion
+Currently, multimodal research and applications encompass
+various techniques[9, 11, 13–15], among which image fu-
+sion methods play a crucial role. Traditional image fusion
+approaches rely on manually designed fusion rules and fea-
+tures to integrate image information[6, 21]. Deep learning-
+based methods have emerged as the predominant approach
+to addressing the challenges of image fusion tasks[4, 8].
+Currently, image fusion can be categorized into image-level
+fusion and feature-level fusion. Image-level fusion aims to
+merge images into a single image before inputting them into
+the model for training and inference. On the other hand,
+feature-level fusion involves merging the features of images
+after they have been inputted into the model through fusion
+modules. Image-level fusion can potentially distort images
+and lead to information loss, whereas feature-level fusion
+enables models to adaptively learn information from differ-
+ent modalities of images.
+3. Methodology
+Our approach is primarily divided into three parts: multi-
+level auxiliary supervision branch strategy, feature-level im-
+age fusion strategy, and data augmentation and model en-
+semble strategy. The overall framework is illustrated in Fig-
+ure 2.
+3.1. Multi-level Auxiliary Supervision Branch
+We extended the official YOLOv9 model into a Dual-
+Backbone structure and incorporated YOLOv9’s auxiliary
+supervision branch strategy. For each modality, we con-
+structed two auxiliary branches: one supervising features
+before routing and another after routing, aiming to model
+shallow, high-level, and cross-modal interactions between
+high and low-level features. This approach allows simul-
+taneous capture of low-level and high-level image charac-
+teristics and further learning of interaction information be-
+tween RGB and TIR modalities across different layers. The
+multi-level auxiliary supervision branch structure is illus-
+trated in Figure 3.
+3.2. Feature-level Image Fusion
+Drawing inspiration from the ICAFusion model [4], we
+adopted a transformer-based cross-modal fusion approach
+using cross-modal attention for image fusion. This method
+was integrated into the backbone network of our model,
+enabling it to autonomously adapt to the characteristics of
+dual-light images during training. It effectively utilizes in-
+formation from different modalities and cross-modal inter-
+actions, thereby mitigating image misalignment issues.
+3.3. Data Augmentation and Model Ensemble
+We employ multiple data augmentation techniques tailored
+to enhance the noise resistance and cross-domain robust-
+ness of our model using RGB and TIR images. The data
+augmentation consists of three parts: (1) developing RGB
+data augmentation strategies that align with the data char-
+acteristics to simulate the distribution of real data; (2) cre-
+ating cropping and rotation augmentation strategies specific
+to RGB and TIR data, mimicking challenges in RGB and
+TIR image registration; (3) devising TIR image data aug-
+mentation strategies that simulate imaging blur issues en-
+countered in practical applications.
+Specifically, both RGB and infrared images undergo Mo-
+saic augmentation and random noise augmentation. For
+RGB images, random brightness augmentation is applied,
+while for TIR images, random edge enhancement, and ran-
+dom blur augmentation are used. Additionally, either crop-
+ping or rotation augmentation is randomly applied to both
+types of images. The effects of data augmentation are illus-
+trated in Figure 4.
+In terms of model ensemble, we employed a differenti-
+ated ensemble approach aimed at maximizing result vari-
+ance. We implemented various experimental strategies to
+maximize performance enhancement based on maximizing
+result disparities.
+4. Experiments
+4.1. Experiments Setup
+Dataset. We introduced external datasets, namely the Dron-
+eVehicle dataset[5] and the Visdrone dataset. For the Dron-
+eVehicle dataset[22], we directly utilized the original test
+set data, comprising 8980 image pairs. Regarding the Vis-
+drone dataset, we employed a cropping strategy that cal-
+culated the maximum allowable number of crops for each
+
+===== PAGE 3 =====
+2024 GAIIC
+DMFF
+DMFF
+DMFF NECK
+Head
+Head
+Head
+Detect
+Detect
+Detect
+multi-level
+Auxiliary Branch
+multi-level
+Auxiliary Branch
+aug
+aug
+Figure 2. Overall Architecture. Our method consists of three main components: extended multi-level auxiliary branches, image feature-
+level fusion, and data augmentation and model ensemble. We apply different data augmentation techniques to different modal images and
+perform image fusion at three scales.
+Head Head Head
+Detect Detect Detect
+Head Head Head
+Detect Detect Detect
+Routing 
+backbone
+Figure 3. Multi-level Auxiliary Supervision Branch strategy (tak-
+ing RGB images as an example).
+2024 GAIIC
+RGB data characteristics and augmentation TIR data characteristics and augmentationRGB-TIR data characteristics and augmentation
+Figure 4. Multi-level Auxiliary Supervision Branch strategy (tak-
+ing RGB images as an example).
+image based on its longest and shortest sides. We excluded
+crop results that did not contain any objects, resulting in a
+total of 15,929 RGB images. Since the Visdrone dataset
+lacks infrared data, we compensated for the absence of in-
+frared images by converting RGB images to grayscale.
+Implementation Detail. We conducted training using 4
+A100 GPUs, adhering to the default settings of the YOLOv9
+model for all parameters. Regarding data augmentation, im-
+ages had a 0.3 chance of being rotated with random angles
+between -5 and 5 degrees. There was also a 0.3 chance of
+applying horizontal or vertical cropping with random pixel
+values between -10 and 10. Brightness augmentation was
+exclusively applied to RGB images, while edge enhance-
+ment was applied solely to infrared images. Additionally,
+either cropping or rotation augmentation was randomly ap-
+plied to either RGB or infrared images.
+# Method mAP
+1 YOLOv9 0.451
+2 +external data 0.461
+3 +data augmentation 0.508
+4 +auxiliary branch 0.525
+5 +model ensemble 0.543
+Table 1. Ablation experiments.
+4.2. Main Result
+Our method achieved an mAP score of 0.543 on the A
+leaderboard and 0.516 on the B leaderboard. Our FPS is
+26/s. The results of the ablation experiments on the A
+leaderboard are shown in Table 1. The experimental re-
+
+===== PAGE 4 =====
+sults indicate that data augmentation strategies enhance the
+model’s noise resistance and effectively improve its cross-
+domain robustness. Incorporating multi-level auxiliary su-
+pervision branches solely during the training phase fur-
+ther facilitates the learning of interaction information be-
+tween modalities. This approach ensures real-time capabil-
+ity while enhancing the algorithm’s robustness.
+5. Conclusion
+We developed multi-level auxiliary supervision branches to
+capture both low-level and high-level image features, facili-
+tating the learning of interaction information between RGB
+and TIR modalities. Implemented within the YOLOv9
+model for real-time efficiency, this approach enhances al-
+gorithmic robustness. For image fusion, we utilized the fu-
+sion units from the ICAFusion model, enabling the model to
+autonomously adapt to dual-light image characteristics dur-
+ing training. This method effectively integrates dual-light
+images at the feature level, mitigating image misalignment
+issues.
+Furthermore, employing various data augmentation tech-
+niques tailored separately for RGB and TIR images en-
+hances the model’s noise resistance and improves its gen-
+eralization on the test set. This approach effectively ad-
+dresses challenges such as complex backgrounds and fre-
+quent lighting variations in images, thereby enhancing the
+model’s cross-domain robustness. Our method successfully
+tackles the object detection challenges presented by RGB-
+TIR images captured from a drone’s perspective.
+References
+[1] Nicolas Carion, Francisco Massa, Gabriel Synnaeve, Nicolas
+Usunier, Alexander Kirillov, and Sergey Zagoruyko. End-
+to-end object detection with transformers. In ECCV, pages
+213–229. Springer, 2020. 2
+[2] Tsung-Yi Lin, Michael Maire, Serge J. Belongie, James
+Hays, Pietro Perona, Deva Ramanan, Piotr Doll ´ar, and
+C. Lawrence Zitnick. Microsoft COCO: common objects
+in context. In Computer Vision - ECCV 2014 - 13th Eu-
+ropean Conference, Zurich, Switzerland, September 6-12,
+2014, Proceedings, Part V , pages 740–755. Springer, 2014.
+2
+[3] Joseph Redmon, Santosh Kumar Divvala, Ross B. Girshick,
+and Ali Farhadi. You only look once: Unified, real-time ob-
+ject detection. In CVPR, pages 779–788. IEEE Computer
+Society, 2016. 2
+[4] Jifeng Shen, Yifei Chen, Yue Liu, Xin Zuo, Heng Fan, and
+Wankou Yang. Icafusion: Iterative cross-attention guided
+feature fusion for multispectral object detection. Pattern
+Recognit., 145:109913, 2024. 2
+[5] Yiming Sun, Bing Cao, Pengfei Zhu, and Qinghua Hu.
+Drone-based rgb-infrared cross-modality vehicle detection
+via uncertainty-aware learning. IEEE Trans. Circuits Syst.
+Video Technol., 32(10):6700–6713, 2022. 2
+[6] Amit Vishwakarma and Manas Kamal Bhuyan. Image fusion
+using adjustable non-subsampled shearlet transform. IEEE
+Trans. Instrum. Meas., 68(9):3367–3378, 2019. 2
+[7] Chien-Yao Wang, I-Hau Yeh, and Hong-Yuan Mark Liao.
+Yolov9: Learning what you want to learn using pro-
+grammable gradient information. CoRR, abs/2402.13616,
+2024. 1, 2
+[8] Yuhao Wang, Lingjuan Miao, Zhiqiang Zhou, Lei Zhang,
+and Yajun Qiao. Infrared and visible image fusion with
+language-driven loss in CLIP embedding space. CoRR,
+abs/2402.16267, 2024. 2
+[9] Yang Yang, Ke-Tao Wang, De-Chuan Zhan, Hui Xiong, and
+Yuan Jiang. Comprehensive semi-supervised multi-modal
+learning. In IJCAI, pages 4092–4098. ijcai.org, 2019. 2
+[10] Yang Yang, Yi-Feng Wu, De-Chuan Zhan, Zhi-Bin Liu, and
+Yuan Jiang. Deep robust unsupervised multi-modal network.
+In AAAI, pages 5652–5659. AAAI Press, 2019. 1
+[11] Yang Yang, Zhao-Yang Fu, De-Chuan Zhan, Zhi-Bin Liu,
+and Yuan Jiang. Semi-supervised multi-modal multi-
+instance multi-label deep network with optimal transport.
+IEEE Trans. Knowl. Data Eng., 33(2):696–709, 2021. 2
+[12] Yang Yang, Hongchen Wei, Hengshu Zhu, Dianhai Yu, Hui
+Xiong, and Jian Yang. Exploiting cross-modal prediction and
+relation consistency for semi-supervised image captioning.
+CoRR, abs/2110.11767, 2021. 1
+[13] Yang Yang, De-Chuan Zhan, Yi-Feng Wu, Zhi-Bin Liu, Hui
+Xiong, and Yuan Jiang. Semi-supervised multi-modal clus-
+tering and classification with incomplete modalities. IEEE
+Trans. Knowl. Data Eng., 33(2):682–695, 2021. 2
+[14] Yang Yang, Chubing Zhang, Yi-Chu Xu, Dianhai Yu, De-
+Chuan Zhan, and Jian Yang. Rethinking label-wise cross-
+modal retrieval from A semantic sharing perspective. In IJ-
+CAI, pages 3300–3306. ijcai.org, 2021.
+[15] Yang Yang, Jingshuai Zhang, Fan Gao, Xiaoru Gao, and
+Hengshu Zhu. DOMFN: A divergence-orientated multi-
+modal fusion network for resume assessment. In MM ’22:
+The 30th ACM International Conference on Multimedia, Lis-
+boa, Portugal, October 10 - 14, 2022 , pages 1612–1620.
+ACM, 2022. 2
+[16] Yang Yang, Ran Bao, Weili Guo, De-Chuan Zhan, Yilong
+Yin, and Jian Yang. Deep visual-linguistic fusion network
+considering cross-modal inconsistency for rumor detection.
+Sci. China Inf. Sci. , 66(12), 2023. 1
+[17] Yang Yang, Jia-Qi Yang, Ran Bao, De-Chuan Zhan, Heng-
+shu Zhu, Xiaoru Gao, Hui Xiong, and Jian Yang. Cor-
+porate relative valuation using heterogeneous multi-modal
+graph neural network. IEEE Trans. Knowl. Data Eng. , 35
+(1):211–224, 2023.
+[18] Yang Yang, Jinyi Guo, Guangyu Li, Lanyu Li, Wenjie Li,
+and Jian Yang. Alignment efficient image-sentence retrieval
+considering transferable cross-modal representation learn-
+ing. Frontiers Comput. Sci., 18(3):181335, 2024. 1
+[19] Maoxun Yuan and Xingxing Wei. C 2former: Calibrated
+and complementary transformer for rgb-infrared object de-
+tection. IEEE Trans. Geosci. Remote. Sens. , 62:1–12, 2024.
+1
+[20] Maoxun Yuan, Yinyan Wang, and Xingxing Wei. Trans-
+lation, scale and rotation: Cross-modal alignment meets
+
+===== PAGE 5 =====
+rgb-infrared vehicle detection. In ECCV, pages 509–525.
+Springer, 2022. 1
+[21] Zhiqiang Zhou, Erfang Fei, Lingjuan Miao, and Rao Yang.
+A perceptual framework for infrared-visible image fusion
+based on multiscale structure decomposition and biological
+vision. Inf. Fusion, 93:174–191, 2023. 2
+[22] Pengfei Zhu, Longyin Wen, Dawei Du, Xiao Bian, Heng
+Fan, Qinghua Hu, and Haibin Ling. Detection and tracking
+meet drones challenge. IEEE Transactions on Pattern Anal-
+ysis and Machine Intelligence, 44(11):7380–7399, 2021. 2
+[23] Zhuofan Zong, Guanglu Song, and Yu Liu. Detrs with
+collaborative hybrid assignments training. In ICCV, pages
+6725–6735. IEEE, 2023. 2
